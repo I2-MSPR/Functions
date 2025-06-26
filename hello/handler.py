@@ -1,5 +1,9 @@
 def handle(event, context):
     return {
         "statusCode": 200,
-        "body": "Hello from OpenFaaS!"
+        "body": {
+            "id": 1,
+            "username": "Rémi",
+            "password": "RXBzaS4xMjM=",
+        }
     }
