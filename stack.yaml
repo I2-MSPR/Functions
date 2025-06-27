@@ -11,5 +11,5 @@ functions:
   generate2fa:
     lang: python3-http
     handler: ./generate2fa
-    image: generate2fa:latest
+    image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/generate2fa:latest
 
