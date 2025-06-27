@@ -8,3 +8,8 @@ functions:
     handler: ./hello
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/hello:latest
 
+  generate2fa:
+    lang: python3-http
+    handler: ./generate2fa
+    image: generate2fa:latest
+
