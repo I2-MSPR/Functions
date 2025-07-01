@@ -8,3 +8,11 @@ functions:
     handler: ./hello
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/hello:latest
 
+  authenticator:
+    lang: python3-flask
+    handler: ./authenticator
+    image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/authenticator:latest
+    environment:
+      ENCRYPTION_KEY: "uIdWmJWOT19FVyxosXXuzntpIqUlQ7Tz5dUZkzK5US0="
+    build_args:
+      TEST_ENABLED: "false"
