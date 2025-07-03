@@ -1,10 +1,10 @@
 import base64
-from google.cloud.sql.connector import Connector, IPTypes
 from io import BytesIO
 import pymysql
 import qrcode
 import string
 import secrets
+import mysql.connector
 
 def handle(event, context):
     username = event.query['username']
@@ -45,22 +45,19 @@ def generate_password() -> str :
     return ''.join(password)
 
 def get_conn() -> pymysql.connections.Connection:
-    db_password = get_secret("database-mdp")
-    with Connector() as connector:
-        return connector.connect(
-            "firm-reason-462012-p9:europe-west1:mspr2",
-            "pymysql",
-            user="cloud-connect-prod",
-            password=db_password,
-            db="cloud_connect",
-            ip_type=IPTypes.PUBLIC,   
-        )
+    db_password = get_secret("password")
+    return mysql.connector.connect(
+        host="mysql.openfaas-fn.svc.cluster.local",
+        user="root",
+        password=db_password,
+        database="cloud-connect"
+    )
 
 def get_user(username) -> dict | None:
     connection = get_conn()
     with connection:
         with connection.cursor(dictionary=True) as cursor:
-            sql = "SELECT id FROM User WHERE username = %s"
+            sql = "SELECT id FROM users WHERE username = %s"
             cursor.execute(sql, (username,))
             user = cursor.fetchone()
             return user
