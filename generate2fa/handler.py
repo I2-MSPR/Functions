@@ -67,8 +67,7 @@ def generate_qrcode(key, username):
 
 
 def crypt_secret(key):
-    encoded_binary = (base64.b64encode(key.encode('ascii')))
-    return encoded_binary.decode('ascii')
+    return base64.b64encode(key.encode('utf-8')).decode('utf-8')
 
 def database_storage(encoded_key, username):
     connection = getconn()

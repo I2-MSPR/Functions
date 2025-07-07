@@ -59,7 +59,7 @@ def handle(event, context):
                 }
             }
 
-        stored_password_2fa = decrypt_2fa(user['mfa'])
+        stored_password_2fa = decrypt_password(user['mfa'])
         # Check TOTP
 
         totp = pyotp.TOTP(stored_password_2fa)
@@ -119,7 +119,3 @@ def decrypt_password(password):
     decoded_bytes = base64.b64decode(password)
     decoded_str = decoded_bytes.decode("utf-8")
     return decoded_str
-
-def decrypt_2fa(password):
-    decoded_binary = base64.b64decode(password.encode('ascii'))
-    return decoded_binary.decode('ascii')
