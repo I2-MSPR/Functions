@@ -29,7 +29,3 @@ functions:
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/generate2fa:latest
     secrets:
       - database-mdp
-    annotations:
-      com.openfaas.serviceaccount: ksa-cloudsql
-    environment:
-      write_debug: "true"  
