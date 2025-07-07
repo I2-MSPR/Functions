@@ -78,7 +78,7 @@ def database_storage(encoded_key, username):
             return False
         else:
             id = user["id"]
-            cur.execute("UPDATE users SET mfa = %s WHERE id = %s", (encoded_key, id))
+            cur.execute("UPDATE users SET mfa = %s, gendate=NOW(), expired=0 WHERE id = %s", (encoded_key, id))
             connection.commit()
             return True
 

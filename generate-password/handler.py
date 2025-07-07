@@ -11,12 +11,12 @@ def handle(event, context):
     username = event.query['username']
     
     try:
+        password = generate_password()
         user = get_user(username)
         if user is None:
-            password = generate_password()
             create_user(username, password)
         else:
-            password = user['password']
+            update_user(username, password)
         
         qrcode = generate_qrcode(password)
         
@@ -77,8 +77,17 @@ def create_user(username, password):
     connection = get_conn()
     with connection:
         with connection.cursor(dictionary=True) as cursor:
-            sql = "INSERT INTO users (username, password) VALUES (%s, %s)"
+            sql = "INSERT INTO users (username, password, gendate, expired) VALUES (%s, %s, NOW(), 0)"
             cursor.execute(sql, (username, base64_password))
+            connection.commit()
+
+def update_user(username, password):
+    base64_password = base64.b64encode(password.encode('utf-8')).decode('utf-8')
+    connection = get_conn()
+    with connection:
+        with connection.cursor(dictionary=True) as cursor:
+            sql = "UPDATE users SET password=%s, gendate=NOW(), expired=0 WHERE username = %s"
+            cursor.execute(sql, (base64_password, username,))
             connection.commit()
 
 def generate_qrcode(password):
