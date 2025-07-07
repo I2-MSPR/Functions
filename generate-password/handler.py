@@ -5,24 +5,34 @@ import qrcode
 import string
 import secrets
 import mysql.connector
+import json
 
 def handle(event, context):
     username = event.query['username']
     
-    user = get_user(username)
-    
-    if user is None:
-        password = generate_password()
-        create_user(username, password)
-    else:
-        password = user.password
-    
-    qrcode = generate_qrcode(password)
-    
-    return {
-        "statusCode": 200,
-        "body": { "qrcode": qrcode }
-    } 
+    try:
+        user = get_user(username)
+        if user is None:
+            password = generate_password()
+            create_user(username, password)
+        else:
+            password = user['password']
+        
+        qrcode = generate_qrcode(password)
+        
+        return {
+            "statusCode": 200,
+            "body": { "qrcode": qrcode },
+            "headers": {
+                "Content-type": "text/plain",
+                "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+            }
+        } 
+    except:
+       return {
+            "statusCode": 400,
+            "body": "error"
+        } 
 
     
 def generate_password() -> str :
@@ -57,7 +67,7 @@ def get_user(username) -> dict | None:
     connection = get_conn()
     with connection:
         with connection.cursor(dictionary=True) as cursor:
-            sql = "SELECT id FROM users WHERE username = %s"
+            sql = "SELECT password FROM users WHERE username = %s"
             cursor.execute(sql, (username,))
             user = cursor.fetchone()
             return user

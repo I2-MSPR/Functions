@@ -26,13 +26,13 @@ def handle(event, context):
 
     cursor2.execute("""
             CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        mfa VARCHAR(255),
-        gendate DATETIME,
-        expired TINYINT(1) NOT NULL DEFAULT 0
-    );
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            mfa VARCHAR(255),
+            gendate DATETIME,
+            expired TINYINT(1) NOT NULL DEFAULT 0
+        );
         """)
     conn2.commit()
     
