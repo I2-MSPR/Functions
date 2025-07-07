@@ -1,5 +1,3 @@
-flask
-cryptography
-pyotp
-sqlalchemy
-psycopg2-binary
+mysql-connector-python==9.3.0
+PyMySQL==1.1.1
+pyotp==2.9.0

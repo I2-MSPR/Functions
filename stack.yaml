@@ -29,11 +29,10 @@ functions:
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/generate2fa:latest
     secrets:
       - database-mdp
+
   authenticator:
-    lang: python3-flask
+    lang: python3-http
     handler: ./authenticator
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/authenticator:latest
-    environment:
-      ENCRYPTION_KEY: "uIdWmJWOT19FVyxosXXuzntpIqUlQ7Tz5dUZkzK5US0="
-    build_args:
-      TEST_ENABLED: "false"
+    secrets:
+      - database-mdp

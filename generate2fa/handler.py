@@ -17,10 +17,10 @@ def handle(event, context):
             return {
                 "statusCode": 404,
                 "body": "User not Found",
-            "headers": {
-                "Content-type": "text/plain",
-                "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
-            }
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
             }
         return {
             "statusCode": 200,

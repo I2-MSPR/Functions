@@ -1,87 +1,125 @@
 import json
-import os
 import pyotp
-from flask import jsonify
-from cryptography.fernet import Fernet
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
+import pymysql
+import mysql.connector
+import base64
 
-# DB config
-DB_URL = "mysql+pymysql://root:admin123@mysql-service.default.svc.cluster.local:3306/mydb"
 
-engine = create_engine(DB_URL)
-Base = declarative_base()
+def handle(event, context):
 
-class UserCredential(Base):
-    __tablename__ = 'user_credentials'
-    user_id = Column(String, primary_key=True)
-    encrypted_password = Column(String, nullable=False)
-    twofa_secret = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expired = Column(Boolean, default=False)
+    # try:
+        username = event.query['username']
+        password = event.query['password']
+        mfa = event.query['otp_code']
 
-Base.metadata.create_all(engine)
-Session = sessionmaker(bind=engine)
-
-# Key (⚠️ should be same as other functions — use env var in production)
-ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY").encode()
-cipher = Fernet(ENCRYPTION_KEY)
-
-def handle(req):
-    try:
-        session = None 
-        data = json.loads(req)
-        user_id = data.get("user_id")
-        password = data.get("password")
-        otp_code = data.get("otp_code")
-
-        if not all([user_id, password, otp_code]):
-            return jsonify({"error": "user_id, password, and otp_code are required"}), 400
-
-        session = Session()
-        user = session.query(UserCredential).filter_by(user_id=user_id).first()
-
+        if not all([username, password, mfa]):
+            return {
+                "statusCode": 400,
+                "body": "user_id, password, and mfa are required",
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            }
+        user = get_user(username)
+        
         if not user:
-            return jsonify({"error": "User not found"}), 404
+            return {
+                "statusCode": 404,
+                "body": "User not found",
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            } 
 
         # Check expiry (6 months)
-        if datetime.utcnow() - user.created_at > timedelta(days=180):
-            user.expired = True
-            session.commit()
-            return jsonify({"error": "Account expired. Please regenerate credentials."}), 403
+        # if datetime.utcnow() - user['gendate'] > timedelta(days=180):
+        #     user.expired = True
+        #     # update_expired_user()
+        #     session.commit()
+        #     return jsonify({"error": "Account expired. Please regenerate credentials."}), 403
 
-        if user.expired:
-            return jsonify({"error": "Account already expired."}), 403
+        # if user.expired:
+        #     return jsonify({"error": "Account already expired."}), 403
 
         # Decrypt and check password
-        try:
-            stored_password = cipher.decrypt(user.encrypted_password.encode()).decode()
-        except Exception:
-            return jsonify({"error": "Failed to decrypt password"}), 500
 
-        if stored_password != password:
-            return jsonify({"error": "Invalid password"}), 401
+        stored_password = decrypt_password(user['password'])
+        stored_password_user = decrypt_password(password)
 
+        if stored_password != stored_password_user:
+            return {
+                "statusCode": 401,
+                "body": password,
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            }
+
+        stored_password_2fa = decrypt_2fa(user['mfa'])
         # Check TOTP
-        if not user.twofa_secret:
-            return jsonify({"error": "No 2FA secret found"}), 400
 
-        try:
-            secret = cipher.decrypt(user.twofa_secret.encode()).decode()
-        except Exception:
-            return jsonify({"error": "Failed to decrypt 2FA secret"}), 500
+        totp = pyotp.TOTP(stored_password_2fa)
+        verify = totp.verify(mfa)
+        if not verify:
+            return {
+                "statusCode": 401,
+                "body": {"verify": verify},
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            }
 
-        totp = pyotp.TOTP(secret)
-        if not totp.verify(otp_code):
-            return jsonify({"error": "Invalid 2FA code"}), 401
+        return {
+                "statusCode": 200,
+                "body": "Authentication successful",
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            }
 
-        return jsonify({"message": "Authentication successful"}), 200
+    # except Exception as e:
+    #     return {
+    #         "statusCode": 500,
+    #         "body": "Erreur",
+    #         "headers": {
+    #             "Content-type": "text/plain",
+    #             "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+    #         }
+    #     }
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+def get_secret(key):
+    with open("/var/openfaas/secrets/{}".format(key)) as f:
+        return f.read().strip()
 
-    finally:
-        if session:
-            session.close()
+def get_conn() -> pymysql.connections.Connection:
+    mdp = get_secret("password")
+    return mysql.connector.connect(
+        host="mysql.openfaas-fn.svc.cluster.local",
+        user="root",
+        password=mdp,
+        database="cloud-connect"
+    )
+
+def get_user(username) -> dict | None:
+    connection = get_conn()
+    with connection:
+        with connection.cursor(dictionary=True) as cursor:
+            sql = "SELECT * FROM users WHERE username = %s"
+            cursor.execute(sql, (username,))
+            user = cursor.fetchone()
+            return user
+
+def decrypt_password(password):
+    decoded_bytes = base64.b64decode(password)
+    decoded_str = decoded_bytes.decode("utf-8")
+    return decoded_str
+
+def decrypt_2fa(password):
+    decoded_binary = base64.b64decode(password.encode('ascii'))
+    return decoded_binary.decode('ascii')
