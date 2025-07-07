@@ -23,3 +23,8 @@ functions:
     secrets:
       - database-mdp
 
+  generate2fa:
+    lang: python3-http
+    handler: ./generate2fa
+    image: generate2fa:latest
+
