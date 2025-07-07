@@ -1,10 +1,25 @@
 version: 1.0
 provider:
   name: openfaas
-  gateway: http://34.118.254.31:8080
+  gateway: http://127.0.0.1:8080
+  namespace: openfaas-fn
 functions:
   hello:
     lang: python3-http
     handler: ./hello
     image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/hello:latest
+
+  generate-password:
+    lang: python3-http
+    handler: ./generate-password
+    image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/generate-password:latest
+    secrets:
+      - database-mdp
+
+  create-database:
+    lang: python3-http
+    handler: ./create-database
+    image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/create-database:latest
+    secrets:
+      - database-mdp
 
