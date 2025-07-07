@@ -35,14 +35,16 @@ def handle(event, context):
             } 
 
         # Check expiry (6 months)
-        # if datetime.utcnow() - user['gendate'] > timedelta(days=180):
-        #     user.expired = True
-        #     # update_expired_user()
-        #     session.commit()
-        #     return jsonify({"error": "Account expired. Please regenerate credentials."}), 403
-
-        # if user.expired:
-        #     return jsonify({"error": "Account already expired."}), 403
+        if datetime.utcnow() - user['gendate'] > timedelta(days=180):
+            update_expired_user(user['username'])
+            return {
+                "statusCode": 403,
+                "body": "password or mfa expired",
+                "headers": {
+                    "Content-type": "text/plain",
+                    "Access-Control-Allow-Origin": "http://127.0.0.1:8000"
+                }
+            }
 
         # Decrypt and check password
 
@@ -119,3 +121,11 @@ def decrypt_password(password):
     decoded_bytes = base64.b64decode(password)
     decoded_str = decoded_bytes.decode("utf-8")
     return decoded_str
+
+def update_expired_user(username):
+    connection = get_conn()
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "UPDATE users SET expired = 1 WHERE username = %s"
+            cursor.execute(sql, (username,))
+            connection.commit()
