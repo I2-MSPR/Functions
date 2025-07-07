@@ -23,3 +23,9 @@ functions:
     secrets:
       - database-mdp
 
+  generate2fa:
+    lang: python3-http
+    handler: ./generate2fa
+    image: europe-west1-docker.pkg.dev/firm-reason-462012-p9/functions/generate2fa:latest
+    secrets:
+      - database-mdp
